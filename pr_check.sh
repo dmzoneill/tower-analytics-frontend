@@ -1,7 +1,38 @@
 #!/usr/bin/env bash
 
-set -e
+set +e
 set -x
+set -v
+
+if [ "dmzoneill-new-frontend-pipeline" == "$GIT_BRANCH" ]; then
+	echo "New pipeline path"
+	##########################################
+	# new build pipeline
+	export COMPONENT="automation-analytics" 
+	export WORKSPACE=${WORKSPACE:-$APP_ROOT}
+	export APP_ROOT=$(pwd)
+	# export NODE_BUILD_VERSION=16
+	COMMON_BUILDER=https://raw.githubusercontent.com/RedHatInsights/insights-frontend-builder-common/master
+
+	# --------------------------------------------
+	# Options that must be configured by app owner
+	# --------------------------------------------
+	IQE_PLUGINS="automation-analytics"
+	IQE_MARKER_EXPRESSION="smoke"
+	IQE_FILTER_EXPRESSION=""
+
+	set -exv
+	source <(curl -sSL $COMMON_BUILDER/src/frontend-build.sh)
+	BUILD_RESULTS=$?
+        # Stubbed out for now, will be added as tests are enabled
+        mkdir -p $WORKSPACE/artifacts
+        cat << EOF > $WORKSPACE/artifacts/junit-dummy.xml
+          <testsuite tests="1">
+          <testcase classname="dummy" name="dummytest"/>
+          </testsuite>
+EOF
+	exit $BUILD_RESULTS
+fi
 
 # ----------------------------
 # Check for PR branch function
@@ -31,11 +62,12 @@ echo "Building $GIT_BRANCH $ghprbActualCommit $SHORT_COMMIT"
 # Options that must be configured by app owner
 # --------------------------------------------
 
-APP_NAME="tower-analytics"  # name of app-sre "application" folder this component lives in
-APP_NAME="$APP_NAME,gateway,insights-ephemeral"
-COMPONENT_NAME="tower-analytics-clowdapp"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
-IMAGE="quay.io/cloudservices/automation-analytics-api"
-AA_IMAGE_TAG="qa"
+# old build pipeline
+export APP_NAME="tower-analytics"  # name of app-sre "application" folder this component lives in
+export APP_NAME="$APP_NAME,gateway,insights-ephemeral"
+export COMPONENT_NAME="tower-analytics-clowdapp"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
+export IMAGE="quay.io/cloudservices/automation-analytics-api"
+export AA_IMAGE_TAG="qa"
 
 # ------------------------------------
 # Wait for frontend pr-check to appear

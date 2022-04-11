@@ -1,23 +1,37 @@
 #!/bin/bash
 
+set -exv
+
+
 # --------------------------------------------
 # Export vars for helper scripts to use
 # --------------------------------------------
-# name of app-sre "application" folder this component lives in; needs to match for quay
-export COMPONENT="tower-analytics"
-export APP_NAME=`node -e 'console.log(require("./package.json").insights.appname)'`  # `automation-analytics`
-export IMAGE="quay.io/cloudservices/automation-analytics-frontend"
+
+# new build pipeline
+export COMPONENT="automation-analytics" 
+export WORKSPACE=${WORKSPACE:-$APP_ROOT}
 export APP_ROOT=$(pwd)
-cat /etc/redhat-release
+# export NODE_BUILD_VERSION=16
 COMMON_BUILDER=https://raw.githubusercontent.com/RedHatInsights/insights-frontend-builder-common/master
 
+# --------------------------------------------
+# Options that must be configured by app owner
+# --------------------------------------------
+IQE_PLUGINS="automation-analytics"
+IQE_MARKER_EXPRESSION="smoke"
+IQE_FILTER_EXPRESSION=""
+
 set -exv
+# source is preferred to | bash -s in this case to avoid a subshell
+source <(curl -sSL $COMMON_BUILDER/src/frontend-build.sh)
+BUILD_RESULTS=$?
 
-npm ci
-npm run verify
-
-# Generate nginx config based on app name in package.json
-curl -sSL $COMMON_BUILDER/src/nginx_conf_gen.sh | bash -s
-
-curl -sSL $COMMON_BUILDER/src/quay_push.sh | bash -s
+# Stubbed out for now
+mkdir -p $WORKSPACE/artifacts
+cat << EOF > $WORKSPACE/artifacts/junit-dummy.xml
+<testsuite tests="1">
+    <testcase classname="dummy" name="dummytest"/>
+</testsuite>
+EOF
+exit $BUILD_RESULTS
 
